@@ -79,7 +79,7 @@ func main() {
 	http.Handle("/metrics", promhttp.Handler())
 	go func() {
 		log.Println("Starting Prometheus metrics server on :8000")
-		log.Fatal(http.ListenAndServe(*port, nil))
+		log.Fatal(http.ListenAndServe(":"+*port, nil))
 	}()
 
 	// Continuously collect metrics at intervals
