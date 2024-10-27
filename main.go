@@ -2,11 +2,11 @@ package main
 
 import (
 	"context"
+	"flag"
 	"log"
 	"net/http"
 	"time"
 
-	//"github.com/docker/docker/api/types"
 	types "github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
 	"github.com/prometheus/client_golang/prometheus"
@@ -66,6 +66,9 @@ func collectDockerMetrics(cli *client.Client) {
 }
 
 func main() {
+	port := flag.String("port", "8000", "Port to listen on for Prometheus metrics")
+	flag.Parse()
+
 	// Create Docker client
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
@@ -76,7 +79,7 @@ func main() {
 	http.Handle("/metrics", promhttp.Handler())
 	go func() {
 		log.Println("Starting Prometheus metrics server on :8000")
-		log.Fatal(http.ListenAndServe(":8000", nil))
+		log.Fatal(http.ListenAndServe(*port, nil))
 	}()
 
 	// Continuously collect metrics at intervals
