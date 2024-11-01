@@ -3,14 +3,17 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
+	typeContainer "github.com/docker/docker/api/types/container"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
-	types "github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/prometheus/common/expfmt"
 )
 
 var (
@@ -33,7 +36,7 @@ func collectDockerMetrics(cli *client.Client) {
 	ctx := context.Background()
 
 	// List all containers
-	containers, err := cli.ContainerList(ctx, types.ListOptions{})
+	containers, err := cli.ContainerList(ctx, typeContainer.ListOptions{})
 	if err != nil {
 		log.Printf("Error listing containers: %v", err)
 		return
@@ -65,8 +68,34 @@ func collectDockerMetrics(cli *client.Client) {
 	}
 }
 
+func writeMetricsToFile(metricsFile string) error {
+	// Create or truncate the file
+	file, err := os.Create(metricsFile)
+	if err != nil {
+		return fmt.Errorf("error creating metrics file: %w", err)
+	}
+	defer file.Close()
+
+	// Gather metrics and encode in Prometheus text format
+	gatherers := prometheus.Gatherers{prometheus.DefaultGatherer}
+	metrics, err := gatherers.Gather()
+	if err != nil {
+		return fmt.Errorf("error gathering metrics: %w", err)
+	}
+
+	encoder := expfmt.NewEncoder(file, expfmt.Format(expfmt.TypeProtoText))
+	for _, metric := range metrics {
+		if err := encoder.Encode(metric); err != nil {
+			return fmt.Errorf("error encoding metrics: %w", err)
+		}
+	}
+	return nil
+}
+
 func main() {
 	port := flag.String("port", "8000", "Port to listen on for Prometheus metrics")
+	metricsFile := flag.String("metricsFile", "", "Path to write Prometheus metrics (disables HTTP listener if set)")
+	interval := flag.Duration("interval", 10, "Interval to collect metrics")
 	flag.Parse()
 
 	// Create Docker client
@@ -75,16 +104,26 @@ func main() {
 		log.Fatalf("Error creating Docker client: %v", err)
 	}
 
-	// Start Prometheus HTTP server
-	http.Handle("/metrics", promhttp.Handler())
-	go func() {
-		log.Println("Starting Prometheus metrics server on :8000")
-		log.Fatal(http.ListenAndServe(":"+*port, nil))
-	}()
+	// Disable HTTP listener if metricsFile is specified
+	if *metricsFile == "" {
+		// Start Prometheus HTTP server
+		http.Handle("/metrics", promhttp.Handler())
+		go func() {
+			log.Printf("Starting Prometheus metrics server on :%s", *port)
+			log.Fatal(http.ListenAndServe(":"+*port, nil))
+		}()
+	}
 
-	// Continuously collect metrics at intervals
+	// Continuously collect metrics and either write to file or expose over HTTP
 	for {
 		collectDockerMetrics(cli)
-		time.Sleep(10 * time.Second)
+
+		if *metricsFile != "" {
+			if err := writeMetricsToFile(*metricsFile); err != nil {
+				log.Printf("Error writing metrics to file: %v", err)
+			}
+		}
+
+		time.Sleep(*interval * time.Second)
 	}
 }
