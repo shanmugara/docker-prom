@@ -94,7 +94,7 @@ func writeMetricsToFile(metricsFile string) error {
 
 func main() {
 	port := flag.String("port", "8000", "Port to listen on for Prometheus metrics")
-	metricsFile := flag.String("metricsFile", "", "Path to write Prometheus metrics (disables HTTP listener if set)")
+	metricsFilePath := flag.String("metricsFilePath", "", "Path to write Prometheus metrics (disables HTTP listener if set)")
 	interval := flag.Duration("interval", 10, "Interval to collect metrics")
 	flag.Parse()
 
@@ -105,7 +105,7 @@ func main() {
 	}
 
 	// Disable HTTP listener if metricsFile is specified
-	if *metricsFile == "" {
+	if *metricsFilePath == "" {
 		// Start Prometheus HTTP server
 		http.Handle("/metrics", promhttp.Handler())
 		go func() {
@@ -118,8 +118,8 @@ func main() {
 	for {
 		collectDockerMetrics(cli)
 
-		if *metricsFile != "" {
-			if err := writeMetricsToFile(*metricsFile); err != nil {
+		if *metricsFilePath != "" {
+			if err := writeMetricsToFile(*metricsFilePath); err != nil {
 				log.Printf("Error writing metrics to file: %v", err)
 			}
 		}
