@@ -86,8 +86,8 @@ func writeMetricsToFile(metricsFilePath string) error {
 		return fmt.Errorf("error gathering metrics: %w", err)
 	}
 
-	const promtext expfmt.Format = "text"
-	encoder := expfmt.NewEncoder(file, promtext)
+	const promText expfmt.Format = "text/plain"
+	encoder := expfmt.NewEncoder(file, promText)
 	for _, metric := range metrics {
 		if err := encoder.Encode(metric); err != nil {
 			return fmt.Errorf("error encoding metrics: %w", err)
