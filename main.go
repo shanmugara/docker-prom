@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/docker/docker/client"
@@ -68,9 +69,11 @@ func collectDockerMetrics(cli *client.Client) {
 	}
 }
 
-func writeMetricsToFile(metricsFile string) error {
+func writeMetricsToFile(metricsFilePath string) error {
 	// Create or truncate the file
-	file, err := os.Create(metricsFile)
+
+	file, err := os.Create(filepath.Join(metricsFilePath, "docker_metrics.prom"))
+	// file, err := os.Create(metricsFile)
 	if err != nil {
 		return fmt.Errorf("error creating metrics file: %w", err)
 	}
