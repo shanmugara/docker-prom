@@ -49,6 +49,8 @@ func initLogger() {
 	config.Level.SetLevel(zap.InfoLevel)
 	if os.Getenv("DEBUG") == "true" {
 		config.Level.SetLevel(zap.DebugLevel)
+	} else {
+		fmt.Printf("DEBUG is not set")
 	}
 
 	logger, err = config.Build()
