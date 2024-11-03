@@ -50,8 +50,8 @@ func initLogger() {
 	if os.Getenv("DEBUG") == "true" {
 		config.Level.SetLevel(zap.DebugLevel)
 	} else {
-		fmt.Printf("DEBUG is not set")
-		fmt.Printf("DEBUG env vars is %s", os.Getenv("DEBUG"))
+		fmt.Println("DEBUG is not set")
+		fmt.Println("in init DEBUG env vars is ", os.Getenv("DEBUG"))
 	}
 
 	logger, err = config.Build()
@@ -148,6 +148,7 @@ func main() {
 		fmt.Errorf("error setting DEBUG env variable: %w", err)
 		os.Exit(1)
 	}
+	fmt.Println("in main DEBUG is set to ", os.Getenv("DEBUG"))
 
 	defer logger.Sync()
 
