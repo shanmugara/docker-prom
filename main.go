@@ -165,6 +165,8 @@ func main() {
 				logger.Fatal("Error starting HTTP server", zap.Error(err))
 			}
 		}()
+	} else {
+		logger.Info("Metrics file path specified", zap.String("path", *metricsFilePath))
 	}
 
 	// Continuously collect metrics and either write to file or expose over HTTP
