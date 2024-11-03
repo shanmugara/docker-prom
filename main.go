@@ -44,6 +44,7 @@ func init() {
 
 func initLogger() {
 	// create a new zap logger
+	var err error
 	logger, err := zap.NewProduction()
 	if err != nil {
 		logger.Fatal("Error creating logger", zap.Error(err))
