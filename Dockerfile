@@ -10,6 +10,7 @@ WORKDIR /app
 # Copy go.mod and go.sum to download dependencies
 COPY go.mod go.sum ./
 RUN go mod download
+RUN go mod tidy
 
 # Copy the source code
 COPY . .
