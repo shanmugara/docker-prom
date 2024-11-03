@@ -6,7 +6,6 @@ require (
 	github.com/docker/docker v27.3.1+incompatible
 	github.com/prometheus/client_golang v1.20.5
 	github.com/prometheus/common v0.55.0
-	github.com/sirupsen/logrus v1.9.3
 	go.uber.org/zap v1.27.0
 )
 
