@@ -175,6 +175,6 @@ func main() {
 			}
 		}
 		logger.Info("Metrics collected, sleeping", zap.Duration("interval", *interval))
-		time.Sleep(*interval * time.Second)
+		time.Sleep(*interval)
 	}
 }
