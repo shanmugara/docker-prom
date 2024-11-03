@@ -137,7 +137,7 @@ func writeMetricsToFile(metricsFilePath string, metric prometheus.Collector) err
 func main() {
 	port := flag.String("port", "8000", "Port to listen on for Prometheus metrics")
 	metricsFilePath := flag.String("metricsFilePath", "", "Path to write Prometheus metrics (disables HTTP listener if set)")
-	interval := flag.Duration("interval", 10, "Interval to collect metrics")
+	interval := flag.Duration("interval", 10*time.Second, "Interval to collect metrics")
 	flag.Parse()
 
 	defer logger.Sync()
