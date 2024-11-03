@@ -36,8 +36,6 @@ var (
 )
 
 func init() {
-	// Init logger
-	initLogger()
 	// Register the Prometheus metric
 	prometheus.MustRegister(containerImageInfo)
 }
@@ -150,6 +148,8 @@ func main() {
 	}
 	fmt.Println("in main DEBUG is set to ", os.Getenv("DEBUG"))
 
+	// Initialize logger
+	initLogger()
 	defer logger.Sync()
 
 	// Create Docker client
