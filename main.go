@@ -45,7 +45,13 @@ func init() {
 func initLogger() {
 	// create a new zap logger
 	var err error
-	logger, err = zap.NewProduction()
+	config := zap.NewProductionConfig()
+	config.Level.SetLevel(zap.InfoLevel)
+	if os.Getenv("DEBUG") == "true" {
+		config.Level.SetLevel(zap.DebugLevel)
+	}
+
+	logger, err = config.Build()
 	if err != nil {
 		fmt.Printf("Error creating zap logger: %v", err)
 		os.Exit(1)
@@ -98,7 +104,7 @@ func writeMetricsToFile(metricsFilePath string, metric prometheus.Collector) err
 	}
 
 	promFile := filepath.Join(metricsFilePath, "docker_metrics.prom")
-	logger.Info("Writing metrics to file", zap.String("file", promFile))
+	logger.Debug("Writing metrics to file", zap.String("file", promFile))
 	file, err := os.OpenFile(promFile, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0644)
 
 	if err != nil {
@@ -122,6 +128,8 @@ func writeMetricsToFile(metricsFilePath string, metric prometheus.Collector) err
 			return fmt.Errorf("error encoding metrics: %w", err)
 		}
 	}
+	logger.Debug("Metrics written to file")
+
 	return nil
 }
 
@@ -129,7 +137,14 @@ func main() {
 	port := flag.String("port", "8000", "Port to listen on for Prometheus metrics")
 	metricsFilePath := flag.String("metricsFilePath", "", "Path to write Prometheus metrics (disables HTTP listener if set)")
 	interval := flag.Duration("interval", 10*time.Second, "Interval to collect metrics")
+	debug := flag.Bool("debug", false, "Enable debug logging")
+
 	flag.Parse()
+
+	if err := os.Setenv("DEBUG", fmt.Sprintf("%t", *debug)); err != nil {
+		fmt.Errorf("error setting DEBUG env variable: %w", err)
+		os.Exit(1)
+	}
 
 	defer logger.Sync()
 
@@ -138,6 +153,7 @@ func main() {
 	if err != nil {
 		logger.Fatal("Error creating Docker client", zap.Error(err))
 	}
+	logger.Debug("Docker client created")
 
 	// Disable HTTP listener if metricsFile is specified
 	if *metricsFilePath == "" {
@@ -160,7 +176,7 @@ func main() {
 				logger.Error("Error writing metrics to file", zap.Error(err))
 			}
 		}
-		logger.Info("Metrics collected, sleeping", zap.Duration("interval", *interval))
+		logger.Debug("Metrics collected, sleeping", zap.Duration("interval", *interval))
 		time.Sleep(*interval)
 	}
 }
