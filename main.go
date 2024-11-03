@@ -73,20 +73,24 @@ func collectDockerMetrics(cli *client.Client) {
 	}
 }
 
-func writeMetricsToFile(metricsFilePath string) error {
+func writeMetricsToFile(metricsFilePath string, metric prometheus.Collector) error {
 	// Create or truncate the file
+
+	registry := prometheus.NewRegistry()
+	if err := registry.Register(metric); err != nil {
+		return fmt.Errorf("error registering metric: %w", err)
+	}
 
 	promFile := filepath.Join(metricsFilePath, "docker_metrics.prom")
 	file, err := os.OpenFile(promFile, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0644)
-	//file, err := os.Create(filepath.Join(metricsFilePath, "docker_metrics.prom"))
-	// file, err := os.Create(metricsFile)
+
 	if err != nil {
 		return fmt.Errorf("error opening metrics file: %w", err)
 	}
 	defer file.Close()
 
 	// Gather metrics and encode in Prometheus text format
-	gatherers := prometheus.Gatherers{prometheus.DefaultGatherer}
+	gatherers := prometheus.Gatherers{registry}
 	metrics, err := gatherers.Gather()
 	if err != nil {
 		return fmt.Errorf("error gathering metrics: %w", err)
@@ -128,7 +132,7 @@ func main() {
 		collectDockerMetrics(cli)
 
 		if *metricsFilePath != "" {
-			if err := writeMetricsToFile(*metricsFilePath); err != nil {
+			if err := writeMetricsToFile(*metricsFilePath, containerImageInfo); err != nil {
 				log.Printf("Error writing metrics to file: %v", err)
 			}
 		}
