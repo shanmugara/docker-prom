@@ -5,7 +5,7 @@ import (
 	"flag"
 	"fmt"
 	typeContainer "github.com/docker/docker/api/types/container"
-	"log"
+	//"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -15,6 +15,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/common/expfmt"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -34,6 +35,7 @@ var (
 
 func init() {
 	// Register the Prometheus metric
+	log.WithField("metric", "containerImageInfo").Info("Registering Prometheus metric")
 	prometheus.MustRegister(containerImageInfo)
 }
 
@@ -43,7 +45,8 @@ func collectDockerMetrics(cli *client.Client) {
 	// List all containers
 	containers, err := cli.ContainerList(ctx, typeContainer.ListOptions{})
 	if err != nil {
-		log.Printf("Error listing containers: %v", err)
+		log.WithError(err).Error("Error listing containers")
+		//log.Printf("Error listing containers: %v", err)
 		return
 	}
 
@@ -58,7 +61,8 @@ func collectDockerMetrics(cli *client.Client) {
 		// Fetch full image information
 		image, _, err := cli.ImageInspectWithRaw(ctx, container.Image)
 		if err != nil {
-			log.Printf("Error inspecting image for container %s: %v", containerName, err)
+			//log.Printf("Error inspecting image for container %s: %v", containerName, err)
+			log.WithError(err).Errorf("Error inspecting image for container %s", containerName)
 			continue
 		}
 
@@ -78,13 +82,16 @@ func writeMetricsToFile(metricsFilePath string, metric prometheus.Collector) err
 
 	registry := prometheus.NewRegistry()
 	if err := registry.Register(metric); err != nil {
+		log.WithError(err).Error("Error registering metric")
 		return fmt.Errorf("error registering metric: %w", err)
 	}
 
 	promFile := filepath.Join(metricsFilePath, "docker_metrics.prom")
+	log.WithField("file", promFile).Info("Writing metrics to file")
 	file, err := os.OpenFile(promFile, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0644)
 
 	if err != nil {
+		log.WithError(err).Error("Error opening metrics file")
 		return fmt.Errorf("error opening metrics file: %w", err)
 	}
 	defer file.Close()
@@ -93,12 +100,14 @@ func writeMetricsToFile(metricsFilePath string, metric prometheus.Collector) err
 	gatherers := prometheus.Gatherers{registry}
 	metrics, err := gatherers.Gather()
 	if err != nil {
+		log.WithError(err).Error("Error gathering metrics")
 		return fmt.Errorf("error gathering metrics: %w", err)
 	}
 
 	encoder := expfmt.NewEncoder(file, PromText)
 	for _, metric := range metrics {
 		if err := encoder.Encode(metric); err != nil {
+			log.WithError(err).Error("Error encoding metrics")
 			return fmt.Errorf("error encoding metrics: %w", err)
 		}
 	}
@@ -122,7 +131,8 @@ func main() {
 		// Start Prometheus HTTP server
 		http.Handle("/metrics", promhttp.Handler())
 		go func() {
-			log.Printf("Starting Prometheus metrics server on :%s", *port)
+			log.WithField("port", *port).Info("Starting Prometheus metrics server")
+			//log.Printf("Starting Prometheus metrics server on :%s", *port)
 			log.Fatal(http.ListenAndServe(":"+*port, nil))
 		}()
 	}
@@ -133,7 +143,8 @@ func main() {
 
 		if *metricsFilePath != "" {
 			if err := writeMetricsToFile(*metricsFilePath, containerImageInfo); err != nil {
-				log.Printf("Error writing metrics to file: %v", err)
+				log.WithField("error", err).Error("Error writing metrics to file")
+				//log.Printf("Error writing metrics to file: %v", err)
 			}
 		}
 
