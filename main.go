@@ -174,7 +174,7 @@ func main() {
 				//log.Printf("Error writing metrics to file: %v", err)
 			}
 		}
-
+		logger.Info("Metrics collected, sleeping", zap.Duration("interval", *interval))
 		time.Sleep(*interval * time.Second)
 	}
 }
