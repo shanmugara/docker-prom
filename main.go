@@ -17,6 +17,10 @@ import (
 	"github.com/prometheus/common/expfmt"
 )
 
+const (
+	PromText expfmt.Format = "text/plain"
+)
+
 var (
 	// Define Prometheus metric
 	containerImageInfo = prometheus.NewGaugeVec(
@@ -72,10 +76,12 @@ func collectDockerMetrics(cli *client.Client) {
 func writeMetricsToFile(metricsFilePath string) error {
 	// Create or truncate the file
 
-	file, err := os.Create(filepath.Join(metricsFilePath, "docker_metrics.prom"))
+	promFile := filepath.Join(metricsFilePath, "docker_metrics.prom")
+	file, err := os.OpenFile(promFile, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0644)
+	//file, err := os.Create(filepath.Join(metricsFilePath, "docker_metrics.prom"))
 	// file, err := os.Create(metricsFile)
 	if err != nil {
-		return fmt.Errorf("error creating metrics file: %w", err)
+		return fmt.Errorf("error opening metrics file: %w", err)
 	}
 	defer file.Close()
 
@@ -86,8 +92,7 @@ func writeMetricsToFile(metricsFilePath string) error {
 		return fmt.Errorf("error gathering metrics: %w", err)
 	}
 
-	const promText expfmt.Format = "text/plain"
-	encoder := expfmt.NewEncoder(file, promText)
+	encoder := expfmt.NewEncoder(file, PromText)
 	for _, metric := range metrics {
 		if err := encoder.Encode(metric); err != nil {
 			return fmt.Errorf("error encoding metrics: %w", err)

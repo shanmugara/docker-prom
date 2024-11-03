@@ -1,32 +1,36 @@
-# Use the official Golang image to build the Go application
-FROM golang:1.20 as builder
+# Start from a base image with Go installed
+FROM golang:1.22-alpine as builder
 
-# Set the Current Working Directory inside the container
+# Set environment variables
+ENV GO111MODULE=on
+
+# Create an app directory
 WORKDIR /app
 
-# Copy go.mod and go.sum files
+# Copy go.mod and go.sum to download dependencies
 COPY go.mod go.sum ./
-
-# Download all dependencies. Dependencies will be cached if the go.mod and go.sum files are not changed
 RUN go mod download
 
-# Copy the source code into the container
+# Copy the source code
 COPY . .
 
-# Build the Go app
-RUN go build -o main .
+# Build the application
+RUN go build -o docker-metrics-exporter
 
-# Use a minimal image to run the Go application
-FROM ubuntu:latest
+# Final image
+FROM alpine:3.18
 
-# Set the Current Working Directory inside the container
+# Create a directory for the app
 WORKDIR /app
 
-# Copy the Pre-built binary file from the previous stage
-COPY --from=builder /app/main .
+# Copy the compiled Go binary and any additional files from the builder stage
+COPY --from=builder /app/docker-metrics-exporter /app/docker-metrics-exporter
 
-# Expose port 8000 to the outside world
+# Install Docker client to allow connecting to Docker daemon
+RUN apk add --no-cache docker-cli
+
+# Set the container's entrypoint to the binary, allowing args to be passed at runtime
+ENTRYPOINT ["/app/docker-metrics-exporter"]
+
+# Expose default port for Prometheus metrics
 EXPOSE 8000
-
-# Command to run the executable
-CMD ["./main"]
