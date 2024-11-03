@@ -38,7 +38,7 @@ var (
 func init() {
 	// Register the Prometheus metric
 	//log.WithField("metric", "containerImageInfo").Info("Registering Prometheus metric")
-	logger.Info("Registering Prometheus metric", zap.String("metric", "containerImageInfo"))
+	//logger.Info("Registering Prometheus metric", zap.String("metric", "containerImageInfo"))
 	prometheus.MustRegister(containerImageInfo)
 }
 
@@ -132,7 +132,11 @@ func main() {
 
 	// create a new zap logger
 	//logger,_ := zap.NewDevelopment()
-	logger, _ := zap.NewProduction()
+	logger, err := zap.NewProduction()
+	if err != nil {
+		//log.Fatalf("Error creating logger: %v", err)
+		logger.Fatal("Error creating logger", zap.Error(err))
+	}
 	defer logger.Sync()
 
 	// Create Docker client
